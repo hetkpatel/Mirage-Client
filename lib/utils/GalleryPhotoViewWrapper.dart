@@ -8,7 +8,7 @@ import 'package:filesize/filesize.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_session_manager/flutter_session_manager.dart';
 import 'package:intl/intl.dart';
-import 'package:mirageclient/MirageFile.dart';
+import 'package:mirageclient/MiragePhotoData.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:video_player/video_player.dart';
@@ -17,7 +17,7 @@ class GalleryPhotoViewWrapper extends StatefulWidget {
   final int initialIndex;
   final bool alreadySelected;
   final PageController pageController;
-  final List<MirageFile> galleryItems;
+  final List<MiragePhotoData> galleryItems;
   final List<String> copyOfSelectedIDs;
   final Function(String) onSelectedCallback;
 
@@ -257,7 +257,7 @@ class _GalleryPhotoViewWrapperState extends State<GalleryPhotoViewWrapper> {
   }
 
   PhotoViewGalleryPageOptions _buildItem(BuildContext context, int index) {
-    final MirageFile item = widget.galleryItems[index];
+    final MiragePhotoData item = widget.galleryItems[index];
     return item.type == MirageType.video
         ? PhotoViewGalleryPageOptions.customChild(
             child: Center(

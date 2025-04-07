@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:mirageclient/MirageClient.dart';
-import 'package:mirageclient/MirageFile.dart';
+import 'package:mirageclient/MiragePhotoData.dart';
 import 'package:mirageclient/utils/GalleryPhotoViewWrapper.dart';
 
 class TrashTab extends StatefulWidget {
@@ -16,7 +16,7 @@ class TrashTab extends StatefulWidget {
 
 class TrashTabState extends State<TrashTab> {
   bool _loading = true;
-  List<MirageFile> _trashList = [];
+  List<MiragePhotoData> _trashList = [];
   final List<String> _selected = [];
 
   @override
@@ -139,7 +139,7 @@ class TrashTabState extends State<TrashTab> {
                       ),
                       itemCount: _trashList.length,
                       itemBuilder: (context, index) {
-                        final mediaItem = _trashList[index];
+                        final mPhotoItem = _trashList[index];
                         return GestureDetector(
                           onTap: () async {
                             await Navigator.push(
@@ -150,7 +150,7 @@ class TrashTabState extends State<TrashTab> {
                                   copyOfSelectedIDs: _selected,
                                   initialIndex: index,
                                   alreadySelected:
-                                      _selected.contains(mediaItem.id),
+                                      _selected.contains(mPhotoItem.id),
                                   onSelectedCallback: (id) {
                                     if (_selected.contains(id)) {
                                       _selected.remove(id);
@@ -174,8 +174,8 @@ class TrashTabState extends State<TrashTab> {
                             child: Stack(
                               children: [
                                 BlurHash(
-                                  hash: mediaItem.metadata['BlurHash'],
-                                  image: "${mediaItem.url}?thumbnail=true",
+                                  hash: mPhotoItem.metadata['BlurHash'],
+                                  image: "${mPhotoItem.url}?thumbnail=true",
                                   imageFit: BoxFit.cover,
                                 ),
                                 Container(
@@ -205,21 +205,21 @@ class TrashTabState extends State<TrashTab> {
                                 Align(
                                   alignment: Alignment.bottomCenter,
                                   child: Text(
-                                    "${mediaItem.expiry.difference(DateTime.now()).inDays} days left",
+                                    "${mPhotoItem.expiry.difference(DateTime.now()).inDays} days left",
                                     style: TextStyle(color: Colors.white),
                                   ),
                                 ),
                                 IconButton(
                                   onPressed: () {
-                                    if (_selected.contains(mediaItem.id)) {
-                                      _selected.remove(mediaItem.id);
+                                    if (_selected.contains(mPhotoItem.id)) {
+                                      _selected.remove(mPhotoItem.id);
                                     } else {
-                                      _selected.add(mediaItem.id);
+                                      _selected.add(mPhotoItem.id);
                                     }
                                     widget.selected(_selected.length);
                                   },
                                   icon: Icon(
-                                    _selected.contains(mediaItem.id)
+                                    _selected.contains(mPhotoItem.id)
                                         ? Icons.check_circle_rounded
                                         : Icons.circle_outlined,
                                   ),

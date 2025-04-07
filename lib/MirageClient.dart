@@ -6,7 +6,7 @@ import 'package:flutter_session_manager/flutter_session_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mirageclient/MirageFile.dart';
+import 'package:mirageclient/MiragePhotoData.dart';
 
 class MirageClient {
   static Future<Map<String, String>> _getHeaders() async => {
@@ -62,15 +62,15 @@ class MirageClient {
     }
   }
 
-  static Future<List<MirageFile>> getTrash() async {
+  static Future<List<MiragePhotoData>> getTrash() async {
     String trashUrl = '${await SessionManager().get("server")}/trash';
     var response =
         await http.get(Uri.parse(trashUrl), headers: await _getHeaders());
 
     if (response.statusCode == 200) {
-      List<MirageFile> result = [];
+      List<MiragePhotoData> result = [];
       for (var mirageFile in (jsonDecode(response.body) as List<dynamic>))
-        result.add(MirageFile.fromJson(mirageFile));
+        result.add(MiragePhotoData.fromJson(mirageFile));
       return result;
     } else {
       if (kDebugMode) {
@@ -97,15 +97,15 @@ class MirageClient {
     }
   }
 
-  static Future<List<MirageFile>> getMedia() async {
+  static Future<List<MiragePhotoData>> getPhotos() async {
     String listUrl = '${await SessionManager().get("server")}/list';
     var response =
         await http.get(Uri.parse(listUrl), headers: await _getHeaders());
 
     if (response.statusCode == 200) {
-      List<MirageFile> result = [];
+      List<MiragePhotoData> result = [];
       for (var mirageFile in (jsonDecode(response.body) as List<dynamic>))
-        result.add(MirageFile.fromJson(mirageFile));
+        result.add(MiragePhotoData.fromJson(mirageFile));
       return result;
     } else {
       throw Exception('Failed to list files and folders');

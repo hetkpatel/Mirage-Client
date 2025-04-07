@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mirageclient/login.dart';
 import 'package:mirageclient/main_page.dart';
+import 'package:flutter_session_manager/flutter_session_manager.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,7 +33,7 @@ class MirageApp extends StatelessWidget {
         scaffoldBackgroundColor: colorScheme.surface,
         splashColor: primaryColor.withValues(alpha: 0.1),
         highlightColor: primaryColor.withValues(alpha: 0.1),
-        dialogBackgroundColor: colorScheme.surfaceContainer,
+        dialogTheme: DialogTheme(backgroundColor: colorScheme.surfaceContainer),
         bottomSheetTheme: BottomSheetThemeData(
           backgroundColor: colorScheme.surfaceContainer,
         ),
@@ -177,14 +178,21 @@ class MirageApp extends StatelessWidget {
         '/main': (context) => const MainPage(),
       },
       home: FutureBuilder(
-        future: GoogleFonts.pendingFonts([GoogleFonts.overpassTextTheme()]),
+        future: Future.wait([
+          GoogleFonts.pendingFonts([GoogleFonts.overpassTextTheme()]),
+          SessionManager().get("server"),
+          SessionManager().get("auth"),
+        ]),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
+            final server = snapshot.data?[1] as String?;
+            final auth = snapshot.data?[2] as String?;
+            
             return Theme(
               data: Theme.of(context).copyWith(
                 textTheme: GoogleFonts.overpassTextTheme(),
               ),
-              child: const LoginPage(),
+              child: server != null && auth != null ? const MainPage() : const LoginPage(),
             );
           }
 

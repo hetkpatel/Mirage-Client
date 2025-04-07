@@ -5,7 +5,7 @@ import 'package:filesize/filesize.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mirageclient/MirageClient.dart';
-import 'package:mirageclient/media_tab.dart';
+import 'package:mirageclient/photos_tab.dart';
 import 'package:mirageclient/trash_tab.dart';
 import 'package:mirageclient/utils/AnimatedIndexedStack.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -23,7 +23,7 @@ class _MainPageState extends State<MainPage> {
     "filesystem_used_size": 0,
     "filesystem_total_size": 1,
   };
-  GlobalKey<MediaTabState> GK_mts = GlobalKey();
+  GlobalKey<PhotosTabState> GK_mts = GlobalKey();
   GlobalKey<TrashTabState> GK_trash = GlobalKey();
   final SideMenuController _sideMenuController = SideMenuController();
   int _index = 0;
@@ -88,7 +88,7 @@ class _MainPageState extends State<MainPage> {
                         break;
                       case 1:
                         await GK_trash.currentState!.removeTrash();
-                        GK_mts.currentState!.getMedia();
+                        GK_mts.currentState!.getPhotos();
                         break;
                     }
                   },
@@ -97,7 +97,7 @@ class _MainPageState extends State<MainPage> {
               ],
             )
           : AppBar(
-              title: const Text('Bhojani Drive'),
+              title: const Text('Mirage'),
               leading: null,
             ),
       body: SafeArea(
@@ -213,7 +213,7 @@ class _MainPageState extends State<MainPage> {
               child: AnimatedIndexedStack(
                 index: _index,
                 children: [
-                  MediaTab(
+                  PhotosTab(
                     key: GK_mts,
                     selected: (value) => setState(() => _selected = value),
                   ),

@@ -13,23 +13,23 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mirageclient/MirageClient.dart';
-import 'package:mirageclient/MirageFile.dart';
+import 'package:mirageclient/MiragePhotoData.dart';
 import 'package:mirageclient/utils/GalleryPhotoViewWrapper.dart';
 
-class MediaTab extends StatefulWidget {
+class PhotosTab extends StatefulWidget {
   final ValueChanged<int> selected;
-  const MediaTab({super.key, required this.selected});
+  const PhotosTab({super.key, required this.selected});
 
   @override
-  State<MediaTab> createState() => MediaTabState();
+  State<PhotosTab> createState() => PhotosTabState();
 }
 
-class MediaTabState extends State<MediaTab> {
+class PhotosTabState extends State<PhotosTab> {
   final ImagePicker _picker = ImagePicker();
   final ScrollController _sc = ScrollController();
 
-  List<MirageFile> _media = [];
-  List<DateCollection> _dcs = [];
+  List<MiragePhotoData> _photos = [];
+  List<PhotoCollection> _photoCollection = [];
   final List<String> _selected = [];
   bool _loading = true, _uploading = false, _processing = false;
   int _complete = 0, _total = 0;
@@ -40,41 +40,45 @@ class MediaTabState extends State<MediaTab> {
   final ValueNotifier<String> _currentTitleNotifier =
       ValueNotifier<String>("---");
 
+  final double targetRowHeight = 250;
+  final double spacing = 4;
+
   @override
   void initState() {
     super.initState();
     _startPinging();
-    getMedia();
+    getPhotos();
   }
 
-  void getMedia() async {
+  void getPhotos() async {
     if (context.mounted) {
       setState(() => _loading = true);
     }
 
-    _media = await MirageClient.getMedia();
-    _media = _media.map((file) => file).toList()
+    _photos = await MirageClient.getPhotos();
+    _photos = _photos.map((file) => file).toList()
       ..sort((a, b) => b.created.compareTo(a.created));
 
-    _dcs.clear();
-    for (MirageFile m in _media) {
+    _photoCollection.clear();
+    for (MiragePhotoData m in _photos) {
       bool found = false;
-      for (DateCollection dc in _dcs) {
+      for (PhotoCollection dc in _photoCollection) {
         if (m.created.month == dc.date.month &&
             m.created.year == dc.date.year) {
-          dc.mirageFiles.add(m);
+          dc.mPhotoData.add(m);
           found = true;
           break;
         }
       }
 
       if (!found) {
-        _dcs.add(DateCollection(date: DateTime(m.created.year, m.created.month))
-          ..mirageFiles.add(m));
+        _photoCollection.add(
+            PhotoCollection(date: DateTime(m.created.year, m.created.month))
+              ..mPhotoData.add(m));
       }
     }
 
-    _dcs = _dcs.map((dc) => dc).toList()
+    _photoCollection = _photoCollection.map((dc) => dc).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
 
     if (context.mounted) {
@@ -236,31 +240,33 @@ class MediaTabState extends State<MediaTab> {
                           setState(() => _loading = true);
                         }
 
-                        _media.removeWhere(
+                        _photos.removeWhere(
                             (element) => _selected.contains(element.id));
-                        _media = _media.map((file) => file).toList()
+                        _photos = _photos.map((file) => file).toList()
                           ..sort((a, b) => b.created.compareTo(a.created));
 
-                        _dcs.clear();
-                        for (MirageFile m in _media) {
+                        _photoCollection.clear();
+                        for (MiragePhotoData m in _photos) {
                           bool found = false;
-                          for (DateCollection dc in _dcs) {
+                          for (PhotoCollection dc in _photoCollection) {
                             if (m.created.month == dc.date.month &&
                                 m.created.year == dc.date.year) {
-                              dc.mirageFiles.add(m);
+                              dc.mPhotoData.add(m);
                               found = true;
                               break;
                             }
                           }
 
                           if (!found) {
-                            _dcs.add(DateCollection(
+                            _photoCollection.add(PhotoCollection(
                                 date: DateTime(m.created.year, m.created.month))
-                              ..mirageFiles.add(m));
+                              ..mPhotoData.add(m));
                           }
                         }
 
-                        _dcs = _dcs.map((dc) => dc).toList()
+                        _photoCollection = _photoCollection
+                            .map((dc) => dc)
+                            .toList()
                           ..sort((a, b) => b.date.compareTo(a.date));
 
                         // Trash on server side
@@ -293,6 +299,88 @@ class MediaTabState extends State<MediaTab> {
     );
   }
 
+  Widget _buildPhotoTile(PhotoDataWithSize pd) {
+    // Move hovering outside the builder
+    bool hovering = false;
+
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return MouseRegion(
+          onEnter: (_) => setState(() => hovering = true),
+          onExit: (_) => setState(() => hovering = false),
+          child: InkWell(
+            onTap: () async {
+              await Navigator.push(
+                context,
+                _createRoute(
+                  GalleryPhotoViewWrapper(
+                    galleryItems: _photos,
+                    copyOfSelectedIDs: _selected,
+                    initialIndex: _photos.indexOf(pd.mPhotoData),
+                    alreadySelected: _selected.contains(pd.mPhotoData.id),
+                    onSelectedCallback: (id) {
+                      if (_selected.contains(id)) {
+                        _selected.remove(id);
+                      } else {
+                        _selected.add(id);
+                      }
+                      widget.selected(_selected.length);
+                    },
+                  ),
+                ),
+              );
+              setState(() {
+                widget.selected(_selected.length);
+              });
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Stack(
+                children: [
+                  SizedBox(
+                    width: pd.width,
+                    height: pd.height,
+                    child: BlurHash(
+                      hash: pd.mPhotoData.metadata['BlurHash'],
+                      image: "${pd.mPhotoData.url}?thumbnail=true",
+                      imageFit: BoxFit.cover,
+                    ),
+                  ),
+                  if (hovering || _selected.contains(pd.mPhotoData.id))
+                    Positioned(
+                      top: 4,
+                      left: 4,
+                      child: IconButton(
+                        onPressed: () {
+                          if (_selected.contains(pd.mPhotoData.id)) {
+                            _selected.remove(pd.mPhotoData.id);
+                          } else {
+                            _selected.add(pd.mPhotoData.id);
+                          }
+                          widget.selected(_selected.length);
+                        },
+                        icon: Icon(
+                          _selected.contains(pd.mPhotoData.id)
+                              ? Icons.check_circle_rounded
+                              : Icons.check_circle_outline_outlined,
+                        ),
+                        color: _selected.contains(pd.mPhotoData.id)
+                            ? Colors.white
+                            : Colors.white54,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -312,9 +400,9 @@ class MediaTabState extends State<MediaTab> {
               ? const Center(
                   child: CircularProgressIndicator(),
                 )
-              : _media.isEmpty
+              : _photos.isEmpty
                   ? Center(
-                      child: Text('No media found'),
+                      child: Text('No photos found'),
                     )
                   : FlexibleScrollbar(
                       controller: _sc,
@@ -342,12 +430,12 @@ class MediaTabState extends State<MediaTab> {
                       },
                       child: CustomScrollView(
                         controller: _sc,
-                        slivers: _dcs.map(
-                          (dc) {
+                        slivers: _photoCollection.map(
+                          (collection) {
                             return SliverStickyHeader.builder(
                               builder: (context, state) {
                                 String newCurrentTitle =
-                                    DateFormat.yMMMM().format(dc.date);
+                                    DateFormat.yMMMM().format(collection.date);
                                 if (state.isPinned &&
                                     _currentTitleNotifier.value.toString() !=
                                         newCurrentTitle) {
@@ -370,99 +458,44 @@ class MediaTabState extends State<MediaTab> {
                                   ),
                                 );
                               },
-                              sliver: SliverGrid(
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 5,
-                                  mainAxisSpacing: 4,
-                                  crossAxisSpacing: 4,
-                                ),
-                                delegate: SliverChildBuilderDelegate(
-                                  childCount: dc.mirageFiles.length,
-                                  (context, index) {
-                                    final mediaItem = dc.mirageFiles[index];
-                                    return GestureDetector(
-                                      onTap: () async {
-                                        await Navigator.push(
-                                          context,
-                                          _createRoute(
-                                            GalleryPhotoViewWrapper(
-                                              galleryItems: _media,
-                                              copyOfSelectedIDs: _selected,
-                                              initialIndex:
-                                                  _media.indexOf(mediaItem),
-                                              alreadySelected: _selected
-                                                  .contains(mediaItem.id),
-                                              onSelectedCallback: (id) {
-                                                if (_selected.contains(id)) {
-                                                  _selected.remove(id);
-                                                } else {
-                                                  _selected.add(id);
-                                                }
-                                                widget
-                                                    .selected(_selected.length);
-                                              },
-                                            ),
+                              sliver: SliverLayoutBuilder(
+                                builder: (context, constraints) {
+                                  final availableWidth =
+                                      constraints.crossAxisExtent - spacing * 2;
+                                  final rows = _buildRows(collection.mPhotoData,
+                                      availableWidth, targetRowHeight);
+
+                                  return SliverList(
+                                    delegate: SliverChildBuilderDelegate(
+                                      (context, index) {
+                                        final row = rows[index];
+                                        return Padding(
+                                          padding: EdgeInsets.only(
+                                            top: index == 0 ? spacing : 0,
+                                            bottom: spacing,
+                                            left: spacing,
+                                            right: spacing,
+                                          ),
+                                          child: Row(
+                                            children:
+                                                List.generate(row.length, (i) {
+                                              final img = row[i];
+                                              return Padding(
+                                                padding: EdgeInsets.only(
+                                                    right: i < row.length - 1
+                                                        ? spacing
+                                                        : 0),
+                                                // CHILD
+                                                child: _buildPhotoTile(img),
+                                              );
+                                            }),
                                           ),
                                         );
-                                        setState(() {
-                                          widget.selected(_selected.length);
-                                        });
                                       },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        clipBehavior: Clip.antiAlias,
-                                        child: Stack(
-                                          children: [
-                                            BlurHash(
-                                              hash: mediaItem
-                                                  .metadata['BlurHash'],
-                                              image:
-                                                  "${mediaItem.url}?thumbnail=true",
-                                              imageFit: BoxFit.cover,
-                                            ),
-                                            Container(
-                                              decoration: BoxDecoration(
-                                                gradient: LinearGradient(
-                                                  begin: Alignment.topCenter,
-                                                  end: Alignment.center,
-                                                  colors: [
-                                                    Colors.black
-                                                        .withValues(alpha: 0.5),
-                                                    Colors.black
-                                                        .withValues(alpha: 0),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                            IconButton(
-                                              onPressed: () {
-                                                if (_selected
-                                                    .contains(mediaItem.id)) {
-                                                  _selected
-                                                      .remove(mediaItem.id);
-                                                } else {
-                                                  _selected.add(mediaItem.id);
-                                                }
-                                                widget
-                                                    .selected(_selected.length);
-                                              },
-                                              icon: Icon(
-                                                _selected.contains(mediaItem.id)
-                                                    ? Icons.check_circle_rounded
-                                                    : Icons.circle_outlined,
-                                              ),
-                                              color: Colors.white,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
+                                      childCount: rows.length,
+                                    ),
+                                  );
+                                },
                               ),
                             );
                           },
@@ -572,29 +605,91 @@ class MediaTabState extends State<MediaTab> {
       ),
     );
   }
-}
 
-class DateCollection {
-  final DateTime date;
-  List<MirageFile> mirageFiles = [];
+  List<List<PhotoDataWithSize>> _buildRows(
+    List<MiragePhotoData> images,
+    double maxWidth,
+    double rowHeight,
+  ) {
+    List<List<PhotoDataWithSize>> rows = [];
+    List<MiragePhotoData> currentRow = [];
+    double totalWidth = 0;
 
-  DateCollection({required this.date});
-}
+    for (var img in images) {
+      final scaledWidth = img.aspectRatio * rowHeight;
 
-Route _createRoute(Widget toPage) {
-  return PageRouteBuilder(
-    pageBuilder: (context, animation, secondaryAnimation) => toPage,
-    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      const begin = Offset(0.0, 1.0);
-      const end = Offset.zero;
-      const curve = Curves.ease;
+      // Account for spacing between images
+      final spacingWidth = currentRow.isEmpty ? 0 : spacing;
 
-      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+      // If adding this image would exceed the max width, finalize the current row
+      if (totalWidth + scaledWidth + spacingWidth > maxWidth &&
+          currentRow.isNotEmpty) {
+        final scale =
+            (maxWidth - (currentRow.length - 1) * spacing) / totalWidth;
+        rows.add(
+          currentRow.map((image) {
+            final w = image.aspectRatio * rowHeight * scale;
+            final h = rowHeight * scale;
+            return PhotoDataWithSize(mPhotoData: image, width: w, height: h);
+          }).toList(),
+        );
+        currentRow = [];
+        totalWidth = 0;
+      }
 
-      return SlideTransition(
-        position: animation.drive(tween),
-        child: child,
+      currentRow.add(img);
+      totalWidth += scaledWidth;
+    }
+
+    // Handle the last row
+    if (currentRow.isNotEmpty) {
+      rows.add(
+        currentRow.map((image) {
+          final w = image.aspectRatio * rowHeight;
+          final h = rowHeight;
+          return PhotoDataWithSize(mPhotoData: image, width: w, height: h);
+        }).toList(),
       );
-    },
-  );
+    }
+
+    return rows;
+  }
+
+  Route _createRoute(Widget toPage) {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => toPage,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(0.0, 1.0);
+        const end = Offset.zero;
+        const curve = Curves.ease;
+
+        var tween =
+            Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+        return SlideTransition(
+          position: animation.drive(tween),
+          child: child,
+        );
+      },
+    );
+  }
+}
+
+class PhotoCollection {
+  final DateTime date;
+  List<MiragePhotoData> mPhotoData = [];
+
+  PhotoCollection({required this.date});
+}
+
+class PhotoDataWithSize {
+  final MiragePhotoData mPhotoData;
+  final double width;
+  final double height;
+
+  PhotoDataWithSize({
+    required this.mPhotoData,
+    required this.width,
+    required this.height,
+  });
 }
