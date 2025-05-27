@@ -1,16 +1,18 @@
 name: Publish Container
 
 on:
-  push:
-    branches: [production]
+  workflow_run:
+    workflows: [Deploy Flutter Web]
+    types: [completed]
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: read
       packages: write
-      id-token: write  # For ghcr auth with GITHUB_TOKEN
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -34,6 +36,8 @@ jobs:
           WORKDIR /usr/share/nginx/html
           RUN rm -f ./*
           COPY . .
+          EXPOSE 80
+          CMD ["nginx", "-g", "daemon off;"]
           EOF
 
       - name: Build and push container
