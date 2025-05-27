@@ -33,7 +33,8 @@ class MirageApp extends StatelessWidget {
         scaffoldBackgroundColor: colorScheme.surface,
         splashColor: primaryColor.withValues(alpha: 0.1),
         highlightColor: primaryColor.withValues(alpha: 0.1),
-        dialogTheme: DialogTheme(backgroundColor: colorScheme.surfaceContainer),
+        dialogTheme:
+            DialogThemeData(backgroundColor: colorScheme.surfaceContainer),
         bottomSheetTheme: BottomSheetThemeData(
           backgroundColor: colorScheme.surfaceContainer,
         ),
@@ -55,9 +56,7 @@ class MirageApp extends StatelessWidget {
           scrolledUnderElevation: 0,
           centerTitle: true,
         ),
-        cardTheme: CardTheme(
-          color: colorScheme.surfaceContainer,
-        ),
+        cardTheme: CardThemeData(color: colorScheme.surfaceContainer),
         textTheme: TextTheme(
           displayLarge: GoogleFonts.overpass(
             fontSize: 26,
@@ -187,12 +186,14 @@ class MirageApp extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.done) {
             final server = snapshot.data?[1] as String?;
             final auth = snapshot.data?[2] as String?;
-            
+
             return Theme(
               data: Theme.of(context).copyWith(
                 textTheme: GoogleFonts.overpassTextTheme(),
               ),
-              child: server != null && auth != null ? const MainPage() : const LoginPage(),
+              child: server != null && auth != null
+                  ? const MainPage()
+                  : const LoginPage(),
             );
           }
 
