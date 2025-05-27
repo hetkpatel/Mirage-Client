@@ -1,0 +1,47 @@
+name: Publish Container
+
+on:
+  push:
+    branches: [production]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write  # For ghcr auth with GITHUB_TOKEN
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 'production'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3.10.0
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Dockerfile for NGINX static site
+        run: |
+          cat <<EOF > Dockerfile
+          FROM nginx:latest
+          WORKDIR /usr/share/nginx/html
+          RUN rm -f ./*
+          COPY . .
+          EOF
+
+      - name: Build and push container
+        uses: docker/build-push-action@v6.18.0
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:build-${{ github.run_number }}
