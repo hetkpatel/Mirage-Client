@@ -29,7 +29,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create Dockerfile for NGINX static site
+      - name: Create Dockerfile
         run: |
           cat <<EOF > Dockerfile
           FROM nginx:latest
@@ -47,5 +47,5 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:build-${{ github.run_number }}
+            ghcr.io/mirage-web-client:latest
+            ghcr.io/mirage-web-client:${{ github.sha }}
