@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 'production'
+          ref: "production"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3.10.0
@@ -47,5 +47,5 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ghcr.io/mirage-web-client:latest
-            ghcr.io/mirage-web-client:${{ github.sha }}
+            ghcr.io/hetkpatel/mirage-web-client:latest
+            ghcr.io/hetkpatel/mirage-web-client:${{ github.sha }}
